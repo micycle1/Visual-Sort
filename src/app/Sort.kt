@@ -1,61 +1,47 @@
-package App
+package app
 
-import App.javafx.Controller
-import App.javafx.JavaFxApp
+import app.javafx.JavaFxApp
 import javafx.application.Application
+import javafx.scene.canvas.Canvas
+import javafx.scene.text.Text
 import processing.core.PApplet
 import processing.core.PSurface
 import processing.javafx.PSurfaceFX
 import java.util.*
-import javafx.beans.property.SimpleIntegerProperty
-import javafx.beans.property.IntegerProperty
-import javafx.scene.text.Text
-import javafx.scene.canvas.Canvas
 
 
 class Sort : PApplet() {
 
-    private var len = 100
-    private var off = 0
+    companion object {
+        internal var applet: Sort? = null
+    }
+
+    internal var len = 275
+    internal var delay = 1 // in ms
     internal var algorithmID = 0
-    private var compare = 0
-    private var acc = 0
+    internal var graphType = 0
+    internal var sorting = false
 
-    private val comparisons = SimpleIntegerProperty(this, "comparisons")
-    fun comparisonsOut(): IntegerProperty {
-        return comparisons
-    }
-    private val arrayAccessesOut = SimpleIntegerProperty(this, "comparisons")
-    fun arrayAccesses(): IntegerProperty {
-        return arrayAccessesOut
-    }
+    private var off = 0
+    private var comparisons = 0
+    private var comparisonsLabel: Text? = null
+    private var arrayAccesses = 0
+    private var aAccessesLabel: Text? = null
 
-    //GRAPH VARIABLES
-    private var SIZE = 800 // width?
     private var current = -1
     private var check = -1
-    private var WIDTH = SIZE / len // width of bars
-    internal var type = 0
 
-    //ARRAYS
-    private var list: IntArray = intArrayOf(SIZE) // todo
-    private var list2: MutableList<Int> = arrayListOf(type)
+    private var list: MutableList<Int> = IntRange(1, len).step(1).toList().toMutableList()
 
-    internal var sorting = false
-    private var shuffled = true
     private val algorithm = SortingAlgorithms()
-    var r = Random()
-
-    private var label1: Text? = null
 
     override fun initSurface(): PSurface {
-        Controller.applet = this
         g = createPrimaryGraphics()
         val genericSurface = g.createSurface()
         val fxSurface = genericSurface as PSurfaceFX
         fxSurface.sketch = this
-        App.javafx.JavaFxApp.surface = fxSurface // todo remove?
-        App.javafx.Controller.surface = fxSurface
+        app.javafx.JavaFxApp.surface = fxSurface // todo remove?
+        app.javafx.Controller.surface = fxSurface
 
         Thread { Application.launch(JavaFxApp::class.java) }.start()
 
@@ -71,81 +57,57 @@ class Sort : PApplet() {
     }
 
     override fun settings() {
+        applet = this
         size(0, 0, FX2D)
     }
 
     override fun setup() {
         val canvas = surface.native as Canvas
-        label1 = canvas.scene.lookup("#arrayAccesses") as Text
-
-        frameRate(100f)
-        createList()
+        comparisonsLabel = canvas.scene.lookup("#comparisons") as Text
+        aAccessesLabel = canvas.scene.lookup("#arrayAccesses") as Text
+        frameRate(60f)
+        colorMode(HSB, 360f, 1f, 1f)
         shuffleList()
         noLoop()
     }
 
     override fun draw() {
         background(0)
+        comparisonsLabel!!.textProperty().set(comparisons.toString())
+        aAccessesLabel!!.textProperty().set(arrayAccesses.toString())
+        val w = width / len.toFloat()
 
-        for (i in 0 until len) {
-            val barHeight = list[i] * WIDTH
-
-            fill(255)
+        for ((i, n) in list.withIndex()) {
+            fill(list[i].toFloat() / len * 360, 1f, 1f)
             if (current > -1 && i == current) {
-                fill(0f, 255f, 0f)
+                fill(120f, 1f, 0.5f) // g
             }
             if (check > -1 && i == check) {
-                fill(255f, 0f, 0f)
+                fill(0f, 1f, 1f) // r
             }
 
-            if (type == 0) {
-                rect(i * WIDTH.toFloat(), SIZE - barHeight.toFloat(), WIDTH.toFloat(), barHeight.toFloat())
-//                kotlin.io.println(SIZE - barHeight.toFloat())
+            if (graphType == 0) {
+                rect(i * w, height.toFloat(), w, -(n.toFloat() / len) * height)
             } else {
-                ellipse(i * WIDTH.toFloat(), SIZE - barHeight.toFloat(), 5f, 5f)
+                ellipse(i * w, height -(n.toFloat() / len) * height, 5f, 5f)
             }
         }
     }
 
-    fun Update() {
-        WIDTH = SIZE / len
-    }
-
-    private fun createList() {
-        list = IntRange(0, len).step(1).toList().toIntArray()    //CREATES A LIST EQUAL TO THE LENGTH
-    }
-
-    fun shuffleList() { // todo change
-        createList()
-        for (a in 0..499) {    //SHUFFLE RUNS 500 TIMES
-            for (i in 0 until len) {    //ACCESS EACH ELEMENT OF THE LIST
-                val rand = r.nextInt(len)    //PICK A RANDOM NUM FROM 0-LEN
-                val temp = list[i]            //SETS TEMP INT TO CURRENT ELEMENT
-                list[i] = list[rand]        //SWAPS THE CURRENT INDEX WITH RANDOM INDEX
-                list[rand] = temp            //SETS THE RANDOM INDEX TO THE TEMP
-            }
-        }
-        sorting = false
-        shuffled = true
-        list2.shuffle() //todo
-    }
-
-    //RESET SOME VARIABLES
-    fun reset() {
-        sorting = false
-        current = -1
-        check = -1
-        off = 0
-        Update()
+    fun shuffleList() {
+        list = IntRange(1, len).step(1).toList().toMutableList()
+        list.shuffle()
     }
 
     fun delay() {
-        delay(1) //todo framerate/1
+        delay(delay)
     }
 
     fun sort() {
-        sorting = true
-        thread("sorting")
+        if (!sorting) {
+            sorting = true
+            thread("sorting")
+        }
     }
 
     /**
@@ -153,27 +115,27 @@ class Sort : PApplet() {
      */
     @Suppress("unused", "RedundantVisibilityModifier")
     public fun sorting() {
-        if (sorting) {
-            loop()
-            try {
-                when (algorithmID) {
-                    0 -> algorithm.selectionSort()
-                    1 -> algorithm.bubbleSort()
-                    2 -> algorithm.cocktailSort()
-                    3 -> algorithm.oddEvenSort()
-                    4 -> algorithm.insertionSort(0, len - 1)
-                    5 -> algorithm.timSort(len)
-                    6 -> algorithm.quickSort(0, len - 1)
-                    7 -> algorithm.heapSort()
-                    8 -> algorithm.mergeSort(0, len - 1)
-                    9 -> algorithm.pigeonholeSort()
-                    10 -> algorithm.radixSort(len)
-                    else -> algorithm.bogoSort()
-                }
-            } catch (e: IndexOutOfBoundsException) {
-            }
+        comparisons = 0
+        arrayAccesses = 0
+        loop()
+        when (algorithmID) {
+            0 -> algorithm.selectionSort()
+            1 -> algorithm.bubbleSort()
+            2 -> algorithm.cocktailSort()
+            3 -> algorithm.oddEvenSort()
+            4 -> algorithm.insertionSort(0, len - 1)
+            5 -> algorithm.timSort(len)
+            6 -> algorithm.quickSort(0, len - 1)
+            7 -> algorithm.heapSort()
+            8 -> algorithm.mergeSort(0, len - 1)
+            9 -> algorithm.pigeonholeSort()
+            10 -> algorithm.radixSort(len)
+            else -> algorithm.bogoSort()
         }
-        reset()    //RESET (sorting = false)
+        sorting = false
+        current = -1
+        check = -1
+        off = 0
         noLoop()
         redraw()
     }
@@ -193,11 +155,8 @@ class Sort : PApplet() {
                         sm = i
                     }
                     check = i
-                    compare++
-                    comparisons.value = comparisons.value + 1
-                    acc += 2
-                    arrayAccessesOut.value = arrayAccessesOut.value + 2
-                    Update()
+                    comparisons++
+                    arrayAccesses += 2
                     delay()
                 }
                 if (c != sm)
@@ -213,9 +172,8 @@ class Sort : PApplet() {
                 while (list[j] < list[j - 1] && sorting) {
                     swap(j, j - 1)
                     check = j
-                    compare++
-                    acc += 2
-                    Update()
+                    comparisons++
+                    arrayAccesses += 2
                     delay()
                     if (j > start + 1)
                         j--
@@ -237,9 +195,8 @@ class Sort : PApplet() {
                         swap(i, i + 1)
                     }
                     check = i + 1
-                    compare++
-                    acc += 2
-                    Update()
+                    comparisons++
+                    arrayAccesses += 2
                     delay()
                 }
                 c++
@@ -261,9 +218,9 @@ class Sort : PApplet() {
                     }
                     current = i
                     check = i + 1
-                    compare++
-                    acc += 2
-                    Update()
+                    comparisons++
+                    arrayAccesses += 2
+
                     delay()
                     i += 2
                 }
@@ -280,7 +237,7 @@ class Sort : PApplet() {
                 var i: Int
                 val target: Int
                 val inc: Int
-                if (off === 1) {
+                if (off == 1) {
                     i = len - 2 - c
                     target = c - 1
                     inc = -1
@@ -296,9 +253,9 @@ class Sort : PApplet() {
                         swap(i, i + 1)
                     }
                     check = i + 1 - off
-                    compare++
-                    acc += 2
-                    Update()
+                    comparisons++
+                    arrayAccesses += 2
+
                     delay()
                     i += inc
                 }
@@ -316,22 +273,20 @@ class Sort : PApplet() {
                 swap(end, 0)
                 end--
                 siftDown(0, end)
-                Update()
                 delay()
             }
         }
 
-        fun heapify(n: Int) {
+        private fun heapify(n: Int) {
             var start = iParent(n - 1)
             while (start >= 0 && sorting) {
                 siftDown(start, n - 1)
                 start--
-                Update()
                 delay()
             }
         }
 
-        fun siftDown(start: Int, end: Int) {
+        private fun siftDown(start: Int, end: Int) {
             var root = start
             while (iLeftChild(root) <= end && sorting) {
                 val child = iLeftChild(root)
@@ -350,9 +305,8 @@ class Sort : PApplet() {
                     check = root
                     root = swap
                 }
-                compare += 3
-                acc += 4
-                Update()
+                comparisons += 3
+                arrayAccesses += 4
                 delay()
             }
         }
@@ -378,7 +332,7 @@ class Sort : PApplet() {
 
         private fun partition(lo: Int, hi: Int): Int {
             val pivot = list[hi]
-            acc++
+            arrayAccesses++
             var i = lo - 1
             for (j in lo until hi) {
                 check = j
@@ -388,13 +342,12 @@ class Sort : PApplet() {
                     i++
                     swap(i, j)
                 }
-                compare++
-                acc++
-                Update()
+                comparisons++
+                arrayAccesses++
                 delay()
             }
             swap(i + 1, hi)
-            Update()
+
             delay()
             return i + 1
         }
@@ -408,11 +361,11 @@ class Sort : PApplet() {
 
             for (i in 0 until n1) {
                 L[i] = list[l + i]
-                acc++
+                arrayAccesses++
             }
             for (j in 0 until n2) {
                 R[j] = list[m + 1 + j]
-                acc++
+                arrayAccesses++
             }
             var i = 0
             var j = 0
@@ -422,34 +375,32 @@ class Sort : PApplet() {
                 check = k
                 if (L[i] <= R[j]) {
                     list[k] = L[i]
-                    acc++
+                    arrayAccesses++
                     i++
                 } else {
                     list[k] = R[j]
-                    acc++
+                    arrayAccesses++
                     j++
                 }
-                compare++
-                Update()
+                comparisons++
                 delay()
                 k++
             }
 
             while (i < n1 && sorting) {
                 list[k] = L[i]
-                acc++
+                arrayAccesses++
                 i++
                 k++
-                Update()
+
                 delay()
             }
 
             while (j < n2 && sorting) {
                 list[k] = R[j]
-                acc++
+                arrayAccesses++
                 j++
                 k++
-                Update()
                 delay()
             }
         }
@@ -478,9 +429,8 @@ class Sort : PApplet() {
                     holes[count]--
                     check = i
                     list[i] = count + mi
-                    acc++
+                    arrayAccesses++
                     i++
-                    Update()
                     delay()
                 }
             }
@@ -493,7 +443,6 @@ class Sort : PApplet() {
                 if (!sorting)
                     break
                 countSort(n, exp)
-                Update()
                 delay()
                 exp *= 10
             }
@@ -501,14 +450,13 @@ class Sort : PApplet() {
 
         private fun countSort(n: Int, exp: Int) {
             val output = IntArray(n)
-            var i: Int
+            var i: Int = 0
             val count = IntArray(10)
             Arrays.fill(count, 0)
 
-            i = 0
             while (i < n) {
                 count[list[i] / exp % 10]++
-                acc++
+                arrayAccesses++
                 i++
             }
 
@@ -521,9 +469,9 @@ class Sort : PApplet() {
             i = n - 1
             while (i >= 0) {
                 output[count[list[i] / exp % 10] - 1] = list[i]
-                acc++
+                arrayAccesses++
                 count[list[i] / exp % 10]--
-                acc++
+                arrayAccesses++
                 i--
             }
             i = 0
@@ -532,8 +480,7 @@ class Sort : PApplet() {
                     break
                 check = i
                 list[i] = output[i]
-                acc++
-                Update()
+                arrayAccesses++
                 delay()
                 i++
             }
@@ -544,8 +491,8 @@ class Sort : PApplet() {
             for (i in 1 until n) {
                 if (list[i] > mx)
                     mx = list[i]
-                compare++
-                acc++
+                comparisons++
+                arrayAccesses++
             }
             return mx
         }
@@ -584,15 +531,14 @@ class Sort : PApplet() {
                     if (!sorting)
                         break
                     current = i
-                    val rand = r.nextInt(len)
+                    val rand = Random().nextInt(len)
                     check = rand
                     val temp = list[i]
-                    acc++
+                    arrayAccesses++
                     list[i] = list[rand]
-                    acc += 2
+                    arrayAccesses += 2
                     list[rand] = temp
-                    acc++
-                    Update()
+                    arrayAccesses++
                     delay()
                 }
             }
@@ -600,17 +546,17 @@ class Sort : PApplet() {
 
         private fun swap(i1: Int, i2: Int) {
             val temp = list[i1]
-            acc++
+            arrayAccesses++
             list[i1] = list[i2]
-            acc += 2
+            arrayAccesses += 2
             list[i2] = temp
-            acc++
+            arrayAccesses++
         }
 
         private fun checkSorted(): Boolean {
             for (i in 0 until len - 1) {
                 if (list[i] > list[i + 1]) {
-                    acc += 2
+                    arrayAccesses += 2
                     return false
                 }
             }

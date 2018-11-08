@@ -1,6 +1,6 @@
-package App.javafx
+package app.javafx
 
-import App.Sort
+import app.Sort
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.scene.canvas.Canvas
@@ -16,7 +16,6 @@ import java.util.*
 class Controller : Initializable {
     companion object {
         var surface: PSurfaceFX? = null
-        var applet: Sort? = null
     }
 
     // @formatter:off
@@ -59,32 +58,42 @@ class Controller : Initializable {
 
         size!!.textProperty().bind(sizeSlider!!.valueProperty().asString())
         delay!!.textProperty().bind(delaySlider!!.valueProperty().asString())
-//        comparisons!!.textProperty().bind(Bindings.convert(applet!!.comparisonsOut())) // todo
-//        arrayAccesses!!.textProperty().bind(Bindings.convert(applet!!.arrayAccesses())) // todo
     }
 
     @FXML
     private fun sort() {
-        if (!applet!!.sorting) {
-            applet!!.reset()
-            applet!!.sort()
-        }
+        Sort.applet!!.sort()
     }
 
     @FXML
     private fun shuffle() {
-        applet!!.shuffleList()
-        applet!!.redraw()
+        Sort.applet!!.shuffleList()
+        Sort.applet!!.redraw()
     }
 
     @FXML
     private fun selectAlgorithm() {
-        applet!!.algorithmID = algorithmDropdown!!.selectionModel.selectedIndex
+        Sort.applet!!.algorithmID = algorithmDropdown!!.selectionModel.selectedIndex
     }
 
     @FXML
     private fun selectGraphType() {
-        applet!!.type = graphDropdown!!.selectionModel.selectedIndex
-        applet!!.redraw()
+        Sort.applet!!.graphType = graphDropdown!!.selectionModel.selectedIndex
+        Sort.applet!!.redraw()
+    }
+
+    @FXML
+    private fun changeSize() {
+        Sort.applet!!.len = sizeSlider!!.value.toInt()
+    }
+
+    @FXML
+    private fun changeDelay() {
+        Sort.applet!!.delay = delaySlider!!.value.toInt()
+    }
+
+    @FXML
+    private fun quit() {
+        Sort.applet!!.exit()
     }
 }

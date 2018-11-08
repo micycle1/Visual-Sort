@@ -1,7 +1,7 @@
-package App
+package app
 
 import processing.core.PApplet
 
 fun main(args: Array<String>) {
-    PApplet.main("App.Sort")
+    PApplet.main("app.Sort")
 }
